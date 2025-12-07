@@ -9,11 +9,7 @@ OpenReview 데이터를 활용한 온프레미스(On-Premise) 기반 AI 논문 �
   - [설치 방법 (Installation)](#설치-방법-installation)
   - [사용 방법 (Usage)](#사용-방법-usage)
     - [1. 데이터 수집 (Data Collection)](#1-데이터-수집-data-collection)
-      - [단일 논문 및 리뷰 데이터 가져오기](#단일-논문-및-리뷰-데이터-가져오기)
-      - [전체 학회 데이터 배치 다운로드](#전체-학회-데이터-배치-다운로드)
     - [2. Vector DB 구축 (Build Vector DB)](#2-vector-db-구축-build-vector-db)
-      - [년도별 컬렉션 구축 (권장)](#년도별-컬렉션-구축-권장)
-      - [개별 컬렉션 구축](#개별-컬렉션-구축)
     - [3. Vector DB 탐색 및 시각화](#3-vector-db-탐색-및-시각화)
     - [4. Vector DB 테스트 (Test Vector DB)](#4-vector-db-테스트-test-vector-db)
     - [5. 디버깅 도구 (Debug Tools)](#5-디버깅-도구-debug-tools)
@@ -45,58 +41,28 @@ uv pip install -r requirements.txt
 
 ### 1. 데이터 수집 (Data Collection)
 
-#### 단일 논문 및 리뷰 데이터 가져오기
-
-OpenReview에서 특정 논문의 Abstract와 Review 데이터를 가져옵니다.
+OpenReview에서 논문 및 리뷰 데이터를 수집합니다.
 
 ```bash
-# 기본 설정(ICLR 예시)으로 실행
+# 단일 논문 수집 (기본 설정)
 uv run src/data/data_collection.py
 
-# 특정 논문 및 리뷰 ID 지정하여 실행
-uv run src/data/data_collection.py --forum_id <FORUM_ID> --note_id <NOTE_ID>
-```
-
-#### 전체 학회 데이터 배치 다운로드
-
-ICLR 2025 Conference의 모든 논문과 리뷰를 다운로드합니다.
-
-```bash
-# ICLR 2025 모든 리뷰 다운로드
+# 전체 학회 데이터 배치 다운로드 (예: ICLR 2025)
 uv run src/data/data_collection.py --batch --venue ICLR.cc/2025/Conference
-
-# 다른 학회 지정 (예: NeurIPS 2024)
-uv run src/data/data_collection.py --batch --venue NeurIPS.cc/2024/Conference
 ```
 
 다운로드된 데이터는 `data/` 디렉토리에 JSON 형식으로 저장됩니다.
 
 ### 2. Vector DB 구축 (Build Vector DB)
 
-수집한 데이터를 바탕으로 RAG(검색 증강 생성)를 위한 ChromaDB Vector Database를 구축합니다.
-
-#### 년도별 컬렉션 구축 (권장)
-
-ICLR과 NeurIPS를 년도별로 분리하여 10개의 컬렉션을 생성합니다:
-
-- ICLR: `iclr_2021`, `iclr_2022`, `iclr_2023`, `iclr_2024`, `iclr_2025`
-- NeurIPS: `neurips_2021`, `neurips_2022`, `neurips_2023`, `neurips_2024`, `neurips_2025`
+수집한 데이터를 바탕으로 ChromaDB Vector Database를 구축합니다.
 
 ```bash
-# 모든 년도별 컬렉션 구축 (ICLR + NeurIPS 2021-2025)
+# 모든 년도별 컬렉션 일괄 구축 (권장)
 uv run src/vectordb/build_all_vectordb.py
-```
 
-#### 개별 컬렉션 구축
-
-특정 년도 또는 학회만 구축하려면:
-
-```bash
-# 특정 년도 ICLR
-uv run src/vectordb/build_vectordb.py --json_file data/ICLR.cc_2025_Conference_reviews.json --collection iclr_2025
-
-# 특정 년도 NeurIPS
-uv run src/vectordb/build_vectordb.py --json_file data/NeurIPS.cc_2024_Conference_reviews.json --collection neurips_2024
+# 개별 컬렉션 구축 (예: ICLR 2021)
+uv run src/vectordb/build_vectordb.py --json_file data/ICLR.cc_2021_Conference_reviews.json --collection iclr_2021
 ```
 
 Vector DB는 `./chromadb/` 디렉토리에 영구 저장됩니다.

@@ -1,6 +1,9 @@
 chromadb/
 data/
 logs/
+outputs/
+*.md
+
 debug*.py
 # Byte-compiled / optimized / DLL files
 __pycache__/

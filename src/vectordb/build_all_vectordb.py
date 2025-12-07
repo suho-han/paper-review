@@ -9,7 +9,7 @@ from src.vectordb.build_vectordb import build_vectordb_from_json
 
 def build_separate_conferences():
     """
-    ICLR과 NeurIPS를 년도별로 각각 별도의 컬렉션으로 구축합니다.
+    ICLR, NeurIPS, ICML을 년도별로 각각 별도의 컬렉션으로 구축합니다.
     """
     conferences = [
         # ICLR 년도별
@@ -24,6 +24,8 @@ def build_separate_conferences():
         ("data/NeurIPS.cc_2023_Conference_reviews.json", "neurips_2023"),
         ("data/NeurIPS.cc_2024_Conference_reviews.json", "neurips_2024"),
         ("data/NeurIPS.cc_2025_Conference_reviews.json", "neurips_2025"),
+        # ICML 년도별
+        ("data/ICML.cc_2025_Conference_reviews.json", "icml_2025"),
     ]
 
     for json_file, collection_name in conferences:

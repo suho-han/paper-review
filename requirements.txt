@@ -12,4 +12,12 @@ numpy
 pandas
 scikit-learn
 tqdm
+arxiv
+requests
+pytest
 
+langchain-google-genai==2.0.10
+google-generativeai==0.8.5
+python-dotenv
+langchain-openai
+langchain-huggingface
