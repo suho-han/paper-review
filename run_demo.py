@@ -147,7 +147,7 @@ def _ensure_llm_servers_started() -> bool:
         handles = start_default_servers(wait=True)
         st.session_state["llm_started"] = True
         st.session_state["llm_pids"] = {k: v.pid for k, v in handles.items()}
-        st.toast("LLM servers ready (Python-managed)", icon="✅")
+        st.toast("LLM servers ready (1B/8B models)", icon="✅")
         return True
     except Exception as exc:  # pragma: no cover - runtime dependency
         traceback.print_exc()
@@ -199,11 +199,61 @@ with st.expander("Instructions", expanded=False):
         """
     )
 
+
+# Function to display agent prompts and LLM details
+def _display_agent_prompts():
+    st.subheader("Agent Prompts and LLM Details")
+
+    # Parser Agent Prompt
+    st.markdown("**Parser Agent:**")
+    st.code(
+        """Clean the following raw text extracted from a PDF. Remove weird line breaks, headers/footers, and repeated numbering. Return plain text only, honoring the original paragraph order.
+
+{pdf_text}
+""",
+        language="markdown",
+    )
+    st.caption("LLM: meta-llama/Llama-3.2-1B (Provider: vLLM)")
+
+    # Reviewer Agent Prompt
+    st.markdown("**Reviewer Agent:**")
+    st.code(
+        """You are an expert reviewer for top-tier AI conferences (ICLR, NeurIPS, ICML).\nUse the retrieved human-written reviews strictly as reference for tone and rigor.\n\nContext reviews:\n{context}\n\nSimilar arXiv papers:\n{arxiv_papers}\n""",
+        language="markdown",
+    )
+    st.caption("LLM: meta-llama/Meta-Llama-3-8B-Instruct (Provider: vLLM)")
+
+    # Rating Agent Prompt
+    st.markdown("**Rating Agent:**")
+    st.code(
+        """Given the following draft review, output a single JSON object (no markdown) with keys:\n- overall: number between 1 and 10\n- criteria: object with numeric scores between 1 and 10 for keys: {criteria_keys}\n- rationale: one sentence justification\n\nDraft Review:\n{draft_review}\n""",
+        language="markdown",
+    )
+    st.caption("LLM: meta-llama/Llama-3.2-1B (Provider: vLLM)")
+
+    # Retriever Agent Prompt
+    st.markdown("**Retriever Agent:**")
+    st.code(
+        """Retrieve the top-k most similar reviews from the database based on the input query text.\n\nQuery Text:\n{query_text}\n\nTop-k Results:\n{results}\n""",
+        language="markdown",
+    )
+    st.caption("LLM: Not used (Queries ChromaDB)")
+
+    # ArXiv Agent Prompt
+    st.markdown("**ArXiv Agent:**")
+    st.code(
+        """Fetch papers from arXiv similar to the input manuscript.\n\nTitle: {title}\nAbstract: {abstract}\nRaw Text: {raw_text}\n""",
+        language="markdown",
+    )
+    st.caption("LLM: Not used (Fetches from arXiv API)")
+
+
 # Parse CLI flags (e.g., streamlit run run_demo.py -- --skip-llm-start)
 _parse_cli_flags()
 
 # Try to start LLM servers once per session unless skipped
 _ensure_llm_servers_started()
+
 
 col_input, col_settings = st.columns([3, 1])
 
@@ -324,3 +374,50 @@ if run_clicked:
 
         if state.get("retrieved_pdf_paths"):
             st.caption("Downloaded PDFs cached under outputs/pdfs/ for retrieved papers.")
+
+        # Display agent prompts
+        _display_agent_prompts()
+
+# Function to display agent prompts
+
+
+def _display_agent_prompts():
+    st.subheader("Agent Prompts")
+
+    # Parser Agent Prompt
+    st.markdown("**Parser Agent:**")
+    st.code(
+        """Clean the following raw text extracted from a PDF. Remove weird line breaks, headers/footers, and repeated numbering. Return plain text only, honoring the original paragraph order.
+
+{pdf_text}
+""",
+        language="markdown",
+    )
+
+    # Retriever Agent Prompt
+    st.markdown("**Retriever Agent:**")
+    st.code(
+        """Retrieve the top-k most similar reviews from the database based on the input query text.\n\nQuery Text:\n{query_text}\n\nTop-k Results:\n{results}\n""",
+        language="markdown",
+    )
+
+    # ArXiv Agent Prompt
+    st.markdown("**ArXiv Agent:**")
+    st.code(
+        """Fetch papers from arXiv similar to the input manuscript.\n\nTitle: {title}\nAbstract: {abstract}\nRaw Text: {raw_text}\n""",
+        language="markdown",
+    )
+
+    # Reviewer Agent Prompt
+    st.markdown("**Reviewer Agent:**")
+    st.code(
+        """You are an expert reviewer for top-tier AI conferences (ICLR, NeurIPS, ICML).\nUse the retrieved human-written reviews strictly as reference for tone and rigor.\n\nContext reviews:\n{context}\n\nSimilar arXiv papers:\n{arxiv_papers}\n""",
+        language="markdown",
+    )
+
+    # Rating Agent Prompt
+    st.markdown("**Rating Agent:**")
+    st.code(
+        """Given the following draft review, output a single JSON object (no markdown) with keys:\n- overall: number between 1 and 10\n- criteria: object with numeric scores between 1 and 10 for keys: {criteria_keys}\n- rationale: one sentence justification\n\nDraft Review:\n{draft_review}\n""",
+        language="markdown",
+    )

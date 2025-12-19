@@ -64,7 +64,7 @@ class ParserAgent:
         self._has_pdftotext = shutil.which("pdftotext") is not None
 
         self._use_local_llm = _env_bool("PARSER_USE_LOCAL_LLM", "1")
-        self._local_llm_model = _env_var("PARSER_LOCAL_LLM_MODEL", "meta-llama/Llama-3.2-1B")
+        self._local_llm_model = "meta-llama/Llama-3.2-1B"  # Explicitly set to 1B model
         self._local_llm_provider = _env_var("PARSER_LOCAL_LLM_PROVIDER", "vllm")
         self._local_llm_temperature = _env_float("PARSER_LOCAL_LLM_TEMPERATURE", "0.3")
         self._local_llm_max_tokens = _env_int("PARSER_LOCAL_LLM_MAX_TOKENS", "1024")
@@ -142,7 +142,7 @@ class ParserAgent:
             return ""
 
         llm = get_llm(
-            model=self._local_llm_model,
+            model=self._local_llm_model,  # Ensure 1B model is used
             provider=self._local_llm_provider,
             temperature=self._local_llm_temperature,
             max_tokens=self._local_llm_max_tokens,
@@ -212,8 +212,6 @@ class ParserAgent:
             "conclusion": "conclusion",
         }
 
-        # Match standalone headings only, to avoid false positives like
-        # "Results show ..." being misclassified as a section boundary.
         heading_pattern = re.compile(
             r"(?im)^(?:\d+[\.)]\s*)?(?P<heading>abstract|methodology|methods|approach|architecture|experiments|evaluation|results|conclusion)\s*$",
             re.MULTILINE,
@@ -240,15 +238,15 @@ class ParserAgent:
             if not section_text:
                 continue
 
-            sections[canonical] = self._ensure_min_paragraphs(section_text)
+            sections[canonical] = self._ensure_min_paragraphs(section_text, min_paragraphs=1, max_generated=2)
         return sections
 
     def _ensure_min_paragraphs(
-        self, text: str, min_paragraphs: int = 2, max_generated: int = 3
+        self, text: str, min_paragraphs: int = 1, max_generated: int = 2
     ) -> str:
         paragraphs = self._split_into_paragraphs(text)
         if len(paragraphs) >= min_paragraphs:
-            return "\n\n".join(paragraphs)
+            return "\n\n".join(paragraphs[:max_generated])
 
         sentences = self._split_into_sentences(text)
         if not sentences:

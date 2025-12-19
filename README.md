@@ -1,9 +1,6 @@
 # ReviewerAgent
 
 An on-premises paper reviewer agent that connects OpenReview human review data to a multi-agent pipeline based on RAG and LangGraph. It provides a Streamlit demo and evaluation scripts by self-hosting 1B/8B models with vLLM.
-Repository: <https://github.com/suho-han/paper-review>
-
-[[README.md in Korean]](docs/README_kor.md)
 
 ## Quick Start (Streamlit Demo)
 
@@ -12,7 +9,7 @@ uv pip install -r requirements.txt
 uv run streamlit run run_demo.py
 ```
 
-- Default: Automatically launches 1B (port 8001, GPU mem util 0.5, max-len 4096) + 8B (port 8000, GPU mem util 0.7, max-len 6144) and opens the UI.
+- Default: Automatically launches **1B** (port 8001, GPU mem util 0.5, max-len 4096) + **8B** (port 8000, GPU mem util 0.7, max-len 6144) and opens the UI.
 - To manually start the server, use `DEMO_SKIP_LLM_START=1` or `uv run streamlit run run_demo.py -- --skip-llm-start`.
 - If a HuggingFace token is required, set `HF_TOKEN`.
 

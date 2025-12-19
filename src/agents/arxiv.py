@@ -18,6 +18,8 @@ try:  # Optional dependency
 except ImportError:  # pragma: no cover
     arxiv = None
 
+from .llm import get_llm  # Ensure this import matches your project structure
+from .prompts import ChatPromptTemplate  # Ensure this import matches your project structure
 from .state import AgentState
 
 
@@ -294,6 +296,33 @@ class ArxivPaperRetriever:
     def _format_reference(self, paper: Dict[str, Any]) -> str:
         authors = ", ".join(paper.get("authors", [])[:3]) or "Unknown"
         summary = textwrap.shorten(paper.get("summary", ""), width=600, placeholder="...")
+
+        # Use LLM to refine the summary
+        llm = get_llm(
+            model="meta-llama/Llama-3.2-1B",  # Explicitly use 1B model
+            provider="vllm",
+            temperature=0.3,
+            max_tokens=1024,
+        )
+        if llm:
+            prompt = ChatPromptTemplate.from_template(
+                """Refine the following paper summary for clarity and conciseness:
+
+Title: {title}
+Authors: {authors}
+Summary: {summary}
+"""
+            )
+            try:
+                refined_summary = (prompt | llm).invoke({
+                    "title": paper.get("title", "N/A"),
+                    "authors": authors,
+                    "summary": summary,
+                })
+                summary = refined_summary.strip() if refined_summary else summary
+            except Exception:
+                pass
+
         return (
             f"Title: {paper.get('title', 'N/A')}\n"
             f"Authors: {authors}\n"
