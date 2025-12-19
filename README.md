@@ -34,7 +34,7 @@ DEMO_SKIP_LLM_START=1 uv run streamlit run run_demo.py
 
 ## 데이터 파이프라인
 
-1) **수집**
+1. **수집**
 
 ```bash
 # 단일 논문 기본 수집
@@ -44,7 +44,7 @@ uv run src/data/data_collection.py
 uv run src/data/data_collection.py --batch --venue ICLR.cc/2025/Conference
 ```
 
-1) **벡터 DB 구축 (ChromaDB)**
+1. **벡터 DB 구축 (ChromaDB)**
 
 ```bash
 # 전체 컬렉션 일괄 구축
@@ -54,7 +54,7 @@ uv run src/vectordb/build_all_vectordb.py
 uv run src/vectordb/build_vectordb.py --json_file data/ICLR.cc_2025_Conference_reviews.json --collection iclr_2025
 ```
 
-1) **검색/테스트**
+1. **검색/테스트**
 
 ```bash
 # 기본 테스트 (all_reviews 컬렉션)
@@ -64,7 +64,7 @@ uv run src/vectordb/build_vectordb.py --test
 uv run src/vectordb/build_vectordb.py --test --collection iclr_2025 --query "What are the main weaknesses in experimental design?"
 ```
 
-1) **탐색/시각화**: `notebooks/test_chromadb.ipynb` 또는 `notebooks/test_agents.ipynb`로 컬렉션과 에이전트 동작을 점검하세요.
+1. **탐색/시각화**: `notebooks/test_chromadb.ipynb` 또는 `notebooks/test_agents.ipynb`로 컬렉션과 에이전트 동작을 점검하세요.
 
 ## 평가 파이프라인
 
@@ -76,13 +76,13 @@ uv run src/vectordb/build_vectordb.py --test --collection iclr_2025 --query "Wha
 
 Baseline은 **zero-RAG(검색/ArXiv 없이 Reviewer+Rating만)**, Agent는 **CoordinatorAgent 전체 워크플로(RAG+ArXiv+Rating)** 를 실행해 지표를 비교합니다.
 
-1) (권장) vLLM 서버 상태 확인
+1. (권장) vLLM 서버 상태 확인
 
 ```bash
 uv run python scripts/healthcheck_vllm.py
 ```
 
-1) 실험 실행 (기본: 25개 샘플)
+1. 실험 실행 (기본: 25개 샘플)
 
 ```bash
 uv run python src/evaluation/run_baseline_vs_agent.py \
@@ -91,7 +91,7 @@ uv run python src/evaluation/run_baseline_vs_agent.py \
   --output outputs/results
 ```
 
-1) 전체 샘플에 대해 테스트 (0)
+1. 전체 샘플에 대해 테스트 (0)
 
 ```bash
 uv run python src/evaluation/run_baseline_vs_agent.py \
@@ -100,7 +100,7 @@ uv run python src/evaluation/run_baseline_vs_agent.py \
   --output outputs/results
 ```
 
-1) 출력 확인
+1. 출력 확인
 
 - `--output`을 디렉터리로 주면, 아래 경로에 번들로 저장됩니다.
   - `outputs/results/baseline_vs_agent/<UTC_TIMESTAMP>/report.json`
@@ -135,12 +135,12 @@ data/, chromadb/     # 원본 데이터 및 벡터 DB 저장소
 - vLLM 기본 설정 및 최근 수정 사항은 `FIXES.md`를 확인하세요.
 - LangGraph 파이프라인과 모델 실행 흐름은 `src/agents/`를 참고하세요.
 
-### AI Review by [Stanford Agentic Reviwer](https://paperreview.ai/)
+### AI Review by [Stanford Agentic Reviewer](https://paperreview.ai/)
 
 Go to [https://paperreview.ai/review](https://paperreview.ai/review) and paste the token below
 
 ```bash
-zHXQic4byq9tputwLWpDBzCr070DvWTgPuizthLlPSc
+vWuhcbzdBtWIOWRSWji03ZSGgJrD9A8jrKZgMG0HMA0
 ```
 
 ## TODO List

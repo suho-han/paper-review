@@ -1,0 +1,43 @@
+\begin{thebibliography}{6}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Izacard \& Grave(2021)Izacard and Grave]{izacard2021fid}
+Izacard, G. and Grave, E.
+\newblock Leveraging passage retrieval with generative models for open domain question answering.
+\newblock In \emph{Proceedings of the 16th Conference of the European Chapter of the Association for Computational Linguistics (EACL)}, 2021.
+
+\bibitem[Jiang \& Ng(2025)Jiang and Ng]{paperreviewai}
+Jiang, Y. and Ng, A.
+\newblock Tech overview: Stanford agentic reviewer (paperreview.ai).
+\newblock \url{https://paperreview.ai/tech-overview}, 2025.
+\newblock Accessed: 2025-12-18.
+
+\bibitem[Lewis et~al.(2020)Lewis, Perez, Piktus, Petroni, Karpukhin, Goyal, K"uttler, Lewis, Yih, Rockt"aschel, Riedel, and Kiela]{lewis2020rag}
+Lewis, P., Perez, E., Piktus, A., Petroni, F., Karpukhin, V., Goyal, N., K"uttler, H., Lewis, M., Yih, W., Rockt"aschel, T., Riedel, S., and Kiela, D.
+\newblock Retrieval-augmented generation for knowledge-intensive {NLP} tasks.
+\newblock In \emph{Advances in Neural Information Processing Systems (NeurIPS)}, 2020.
+
+\bibitem[Schick et~al.(2023)Schick, Dwivedi-Yu, Dess{\`i}, Raileanu, Lomeli, Zettlemoyer, Cancedda, and Scialom]{schick2023toolformer}
+Schick, T., Dwivedi-Yu, J., Dess{\`i}, R., Raileanu, R., Lomeli, M., Zettlemoyer, L., Cancedda, N., and Scialom, T.
+\newblock Toolformer: Language models can teach themselves to use tools.
+\newblock 2023.
+\newblock \doi{10.48550/arXiv.2302.04761}.
+\newblock URL \url{https://arxiv.org/abs/2302.04761}.
+
+\bibitem[Wu et~al.(2023)Wu, Bansal, Zhang, Wu, Li, Zhu, Jiang, Zhang, Zhang, Liu, Awadallah, White, Burger, and Wang]{wu2023autogen}
+Wu, Q., Bansal, G., Zhang, J., Wu, Y., Li, B., Zhu, E., Jiang, L., Zhang, X., Zhang, S., Liu, J., Awadallah, A.~H., White, R.~W., Burger, D., and Wang, C.
+\newblock {AutoGen}: Enabling next-gen {LLM} applications via multi-agent conversation.
+\newblock 2023.
+\newblock \doi{10.48550/arXiv.2308.08155}.
+\newblock URL \url{https://arxiv.org/abs/2308.08155}.
+
+\bibitem[Yao et~al.(2023)Yao, Zhao, Yu, Du, Shafran, Narasimhan, and Cao]{yao2023react}
+Yao, S., Zhao, J., Yu, D., Du, N., Shafran, I., Narasimhan, K., and Cao, Y.
+\newblock {ReAct}: Synergizing reasoning and acting in language models.
+\newblock In \emph{International Conference on Learning Representations (ICLR)}, 2023.
+
+\end{thebibliography}
