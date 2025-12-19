@@ -164,9 +164,17 @@ Calculate a Hallucination Score (0.0 to 1.0):
 - 0.0: No hallucinations (all claims supported).
 - 1.0: Pure hallucination (completely unrelated or fabricated).
 
+Also calculate a Hallucination Ratio based on claim counting:
+- Identify the number of distinct factual claims in the Generated Review (total_claims).
+- Identify how many of those are hallucinated (hallucinated_claims).
+- hallucination_ratio = hallucinated_claims / max(total_claims, 1)
+
 Output ONLY a JSON object:
 {{
     "hallucination_score": <float>,
+    "total_claims": <int>,
+    "hallucinated_claims": <int>,
+    "hallucination_ratio": <float>,
     "explanation": "<string>"
 }}
 """)
@@ -189,7 +197,41 @@ Output ONLY a JSON object:
             content = content.split("```")[1].split("```")[0]
 
         result = json.loads(content.strip())
+
+        # Backward-compatible normalization
+        total_claims = result.get("total_claims")
+        hallucinated_claims = result.get("hallucinated_claims")
+        hallucination_ratio = result.get("hallucination_ratio")
+
+        try:
+            total_claims_int = int(total_claims) if total_claims is not None else None
+        except Exception:
+            total_claims_int = None
+        try:
+            hallucinated_claims_int = int(hallucinated_claims) if hallucinated_claims is not None else None
+        except Exception:
+            hallucinated_claims_int = None
+
+        # If ratio missing but counts exist, derive it.
+        if hallucination_ratio is None and total_claims_int is not None and hallucinated_claims_int is not None:
+            denom = max(total_claims_int, 1)
+            hallucination_ratio = float(hallucinated_claims_int) / float(denom)
+
+        # Ensure keys exist for downstream reporting.
+        if total_claims_int is not None:
+            result["total_claims"] = total_claims_int
+        if hallucinated_claims_int is not None:
+            result["hallucinated_claims"] = hallucinated_claims_int
+        if hallucination_ratio is not None:
+            result["hallucination_ratio"] = float(hallucination_ratio)
+
         return result
     except Exception as e:
         print(f"Error in hallucination check: {e}")
-        return {"hallucination_score": 0.0, "error": str(e)}
+        return {
+            "hallucination_score": 0.0,
+            "hallucination_ratio": 0.0,
+            "total_claims": 0,
+            "hallucinated_claims": 0,
+            "error": str(e),
+        }

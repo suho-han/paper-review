@@ -8,6 +8,8 @@ class AgentState(TypedDict, total=False):
     paper_pdf_path: Optional[str]
     paper_text: str
 
+    agent_traces: Dict[str, Dict[str, Any]]
+
     parsed_sections: Dict[str, str]
 
     retrieved_reviews: List[str]
@@ -27,5 +29,8 @@ class AgentState(TypedDict, total=False):
 
     predicted_rating: Optional[float]
     rating_rationale: Optional[str]
+
+    # Optional per-criterion ratings (1-10) if available.
+    rating_breakdown: Dict[str, float]
 
     progress_log: List[str]

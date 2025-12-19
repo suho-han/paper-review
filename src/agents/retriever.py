@@ -38,9 +38,12 @@ class ReviewRetriever:
             dists = results.get("distances", [[]])[0] or [0.0] * len(docs)
 
             for doc, meta, dist in zip(docs, metas, dists):
+                meta_with_extras = dict(meta or {})
+                meta_with_extras["collection_name"] = getattr(collection, "name", "")
+                meta_with_extras["distance"] = dist
                 all_results.append({
                     "document": doc,
-                    "metadata": meta,
+                    "metadata": meta_with_extras,
                     "distance": dist,
                     "collection": collection,
                 })
@@ -109,6 +112,21 @@ def retrieve_node(state: AgentState) -> AgentState:
     progress = list(state.get("progress_log", []))
     progress.append("RAG Agent: retrieved similar human reviews.")
 
+    traces = dict(state.get("agent_traces") or {})
+    traces.setdefault("retriever", {})
+    traces["retriever"].update({
+        "query_preview": paper_text[:600],
+        "top_results": [
+            {
+                "forum_id": (meta or {}).get("forum_id"),
+                "collection": (meta or {}).get("collection_name"),
+                "distance": (meta or {}).get("distance"),
+                "rating": (meta or {}).get("rating"),
+            }
+            for meta in (metadatas or [])
+        ],
+    })
+
     return AgentState(
         retrieved_reviews=reviews,
         retrieved_metadatas=metadatas,
@@ -116,5 +134,6 @@ def retrieve_node(state: AgentState) -> AgentState:
         retrieved_paper_urls=paper_urls,
         retrieved_pdf_urls=pdf_urls,
         retrieved_pdf_paths=pdf_paths,
+        agent_traces=traces,
         progress_log=progress,
     )

@@ -73,3 +73,12 @@ def test_langgraph_workflow_with_stubs(monkeypatch):
     assert result["retrieved_reviews"] == ["Reference review"]
     assert result["arxiv_reference_texts"] == ["Title: Parallel study"]
     assert result["arxiv_cache_hit"] is False
+
+    traces = result.get("agent_traces")
+    assert isinstance(traces, dict)
+    # Nodes should at least leave a trace footprint.
+    assert "parser" in traces
+    assert "retriever" in traces
+    assert "arxiv" in traces
+    assert "reviewer" in traces
+    assert "rating" in traces

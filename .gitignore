@@ -2,7 +2,8 @@ chromadb/
 data/
 logs/
 outputs/
-*.md
+samples/
+paper/
 
 debug*.py
 # Byte-compiled / optimized / DLL files

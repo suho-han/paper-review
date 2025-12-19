@@ -1,0 +1,281 @@
+% Based on the official ICML 2025 example file.
+% Fill the placeholders (TODO blocks) with your research content.
+
+\documentclass{article}
+
+% Recommended, but optional, packages for figures and better typesetting:
+\usepackage{microtype}
+\usepackage{graphicx}
+\usepackage{booktabs} % for professional tables
+
+% hyperref makes hyperlinks in the resulting PDF.
+% If your build breaks, replace icml2025 with icml2025[nohyperref].
+\usepackage{hyperref}
+
+% Attempt to make hyperref and algorithmic work together better:
+\newcommand{\theHalgorithm}{\arabic{algorithm}}
+
+% Use the following line for the initial blind version submitted for review:
+% \usepackage{icml2025}
+
+% If accepted, instead use the following line for the camera-ready submission:
+\usepackage[accepted]{icml2025}
+
+% For theorems and such
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{mathtools}
+\usepackage{amsthm}
+
+% If you use cleveref..
+\usepackage[capitalize,noabbrev]{cleveref}
+
+% Optional (turn off by uncommenting disable):
+% \usepackage[disable,textsize=tiny]{todonotes}
+\usepackage[textsize=tiny]{todonotes}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% THEOREMS (optional)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{assumption}[theorem]{Assumption}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% METADATA
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\icmltitlerunning{Agentic Paper Reviewing}
+
+\begin{document}
+
+\twocolumn[
+    \icmltitle{Agentic Paper Reviewing\\\vspace{0.15em}\large Academic Paper Reviewer Based on AI Agents}
+
+    % --- Authors (CAMERA-READY) ---
+    \begin{icmlauthorlist}
+        \icmlauthor{Suho Han}{soongsil}
+    \end{icmlauthorlist}
+
+    \icmlaffiliation{soongsil}{Soongsil University}
+    \icmlcorrespondingauthor{Suho Han}{suhohan@soongsil.ac.kr}
+
+    \icmlkeywords{Agentic AI, Retrieval-Augmented Generation, LLM Agents, Paper Reviewing}
+
+    \vskip 0.3in
+]
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% ABSTRACT
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{abstract}
+    % TODO (4--6 sentences recommended):
+    % - Problem and motivation
+    % - Key idea / approach
+    % - Main results (quantitative where possible)
+    % - Takeaway / impact
+    Peer review provides high-quality feedback but suffers from slow iteration cycles and high variance in review usefulness.
+    We present \textsc{ReviewerAgent}, an on-premise, retrieval-augmented, multi-agent paper reviewing system that connects public OpenReview review corpora to a LangGraph-orchestrated agent pipeline.
+    The system combines (i) structured retrieval over historical human reviews using a ChromaDB vector store and (ii) coordinated reviewer and rating agents to produce actionable feedback and rubric-style assessments.
+    To make experimentation practical, we self-host lightweight (1B) and stronger (8B) open-source instruction-tuned LLMs via vLLM and provide a Streamlit demo.
+    We evaluate against a zero-retrieval baseline on a held-out test set and report metrics including weakness recall, score correlation, and hallucination rate.
+\end{abstract}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 1. INTRODUCTION
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Introduction}
+% TODO:
+% - Background + why the problem matters
+% - What is missing / limitations of prior work
+% - Your contributions (bullet list is okay)
+% - High-level overview of method and results
+The peer-review process is the primary mechanism for validating and improving research papers, yet it is an unusually slow feedback loop: authors may wait months between submission and receiving comments, and the resulting feedback can be noisy or non-actionable.
+This is especially painful for early-stage projects where rapid iteration on experiments, writing clarity, and positioning relative to prior work is critical.
+
+Large language models (LLMs) have recently become strong assistants for writing and analysis, but naive ``single-shot'' review generation can be brittle: it may miss key weaknesses, overlook relevant baselines, or fabricate supporting evidence.
+We hypothesize that a useful reviewer assistant should (i) ground feedback in retrieved evidence and (ii) follow an explicit multi-step workflow that mirrors how human reviewers read, cross-check, and synthesize.
+
+We introduce \textsc{ReviewerAgent}, a retrieval-augmented, LangGraph-based multi-agent pipeline for paper review generation from OpenReview-derived data.
+extsc{ReviewerAgent} is designed to run fully on-premise with self-hosted vLLM endpoints, enabling reproducible experiments without reliance on proprietary APIs.
+
+Our key contributions are:
+\begin{itemize}
+    \item \textbf{An on-premise agentic reviewing pipeline} that integrates RAG over OpenReview human review corpora with a coordinator-driven multi-agent workflow (retrieval, review drafting, and rating).
+    \item \textbf{A practical, reproducible system implementation} with ChromaDB vector stores, vLLM-hosted open-source LLMs (1B/8B), and an end-to-end Streamlit demo.
+    \item \textbf{An evaluation protocol for reviewer agents} including a baseline-vs-agent comparison and metrics that target review usefulness (weakness recall), faithfulness (hallucination rate), and calibration (score correlation).
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 2. RELATED WORK
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Related Work}
+We position this work at the intersection of retrieval-augmented generation (RAG), agentic AI (tool-using and multi-step LLM systems), and emerging ``agentic'' workflows for assisting scientific reviewing.
+
+\paragraph{Retrieval-Augmented Generation (RAG).}
+RAG combines parametric generation with non-parametric retrieval to improve factuality and coverage on knowledge-intensive tasks~\cite{lewis2020rag}. Subsequent work explores stronger fusion architectures and scaling retrieval+generation pipelines, including fusion-in-decoder style conditioning~\cite{izacard2021fid} and other retrieval-conditioned generators.
+In the context of paper understanding and review assistance, RAG is particularly relevant because it enables grounding claims in retrieved evidence (e.g., paper sections, cited works, or external corpora), which can reduce hallucinations and support verifiable summaries.
+
+\paragraph{Agentic AI and tool-using LLM systems.}
+Agentic AI systems extend LLMs beyond single-shot generation by enabling iterative reasoning, tool use, and multi-step planning/execution~\cite{yao2023react,schick2023toolformer,wu2023autogen}. A representative line of work uses interleaved reasoning and acting (e.g., calling search, code, or structured tools) to solve complex tasks~\cite{yao2023react}. These agentic paradigms are a natural fit for reviewing, where an assistant may need to (i) retrieve evidence, (ii) verify claims, (iii) cross-check prior work, and (iv) synthesize structured feedback under constraints.
+
+\paragraph{Agentic reviewer workflows (practitioner systems).}
+Parallel to academic research, practitioner-facing systems have proposed structured ``agentic'' workflows for document analysis and reviewing. For example, the Stanford ``Agentic Reviewer'' system (PaperReview.ai) converts a paper PDF into a structured representation, retrieves and summarizes relevant prior work from arXiv via web search, and then generates a comprehensive review following a template; it also reports rubric-style sub-scores and studies agreement with public ICLR 2025 ratings~\cite{paperreviewai}. We treat these workflows as complementary motivation: they demonstrate practical decomposition patterns (extraction $\rightarrow$ retrieval $\rightarrow$ synthesis $\rightarrow$ scoring) that can be operationalized and evaluated in a research setting.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 3. METHOD
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Method}
+% TODO:
+% - Problem definition + notation
+% - Model / algorithm description
+% - Training / optimization
+% - Complexity or implementation details
+% - Any theoretical results (optional)
+
+\subsection{Problem Setup}
+Given an input manuscript (paper PDF or extracted text) and an optional target venue, the goal is to generate a structured review that includes (i) a summary of the work, (ii) strengths and weaknesses, (iii) actionable suggestions, and (iv) an overall rating and/or rubric-style sub-scores.
+Our evaluation focuses on whether the system recovers salient weaknesses present in human reviews, how well its ratings correlate with human ratings when available, and how often generated claims are unsupported by the provided context.
+
+\subsection{Proposed Approach}
+extsc{ReviewerAgent} is implemented as a LangGraph workflow composed of specialized agents coordinated by a top-level controller.
+At a high level, the pipeline proceeds as follows:
+\begin{enumerate}
+    \item \textbf{Ingestion and indexing:} We collect OpenReview review data (e.g., ICLR/NeurIPS/ICML venues) and build a ChromaDB vector store over review text.
+    \item \textbf{Retrieval (RAG):} Given a query derived from the target paper (e.g., ``main weaknesses in experimental design''), the retriever agent fetches semantically similar historical reviews and optionally augments with external retrieval (e.g., arXiv search) when enabled.
+    \item \textbf{Review generation:} A reviewer agent synthesizes a structured review grounded in the retrieved evidence.
+    \item \textbf{Rating:} A rating agent produces rubric-style assessments and an overall score, aiming to be consistent with the evidence and the review text.
+    \item \textbf{Coordination and iteration:} A coordinator agent can request additional retrieval or refinement when missing information is detected.
+\end{enumerate}
+
+\subsection{Training and Implementation Details}
+The system uses instruction-tuned open-source LLMs served via vLLM.
+In our default configuration, we run a lightweight model (e.g., Llama-3.2-1B-Instruct) and a stronger model (e.g., Llama-3-8B-Instruct) on separate ports with configurable GPU memory utilization and maximum context length.
+All components are packaged as scripts for data collection, vector DB building, and evaluation, and a Streamlit UI for interactive demos.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 4. RESULTS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Results}
+% TODO:
+% - Datasets + metrics
+% - Baselines
+% - Main quantitative results (tables/figures)
+% - Ablations
+% - Qualitative analysis (optional)
+
+\subsection{Experimental Setup}
+\paragraph{Dataset.}
+We evaluate on a curated test set derived from OpenReview, consisting of $N=899$ forum threads with publicly available human ratings.
+For each thread, we use the mean of available human ratings as the reference score.
+
+\paragraph{Baselines.}
+We compare \textsc{ReviewerAgent} against a \textbf{zero-retrieval baseline} that disables RAG and external search, using only the reviewer and rating components.
+
+\paragraph{Metrics.}
+We report (i) \textbf{weakness recall} against a reference set of weaknesses, (ii) \textbf{rating correlation} (Pearson/Spearman) between predicted and human reference scores, and (iii) \textbf{hallucination} metrics computed from an automated claim-checking procedure: a scalar hallucination score and the hallucinated-claim ratio.
+
+\paragraph{Protocol.}
+We run both baseline and agent pipelines on the same sampled subset and aggregate results into a JSON report and a markdown summary.
+
+\paragraph{External comparison (reported results).}
+To contextualize our correlation results, we additionally report headline numbers from the PaperReview.ai ``Agentic Reviewer'' technical overview~\cite{paperreviewai}.
+Their system uses an agentic workflow that converts PDFs to markdown, retrieves prior work from arXiv via web search, and produces a review plus a 7-dimension rubric (e.g., originality, soundness of experiments, clarity, and contextualization) which is then mapped to an overall score using linear regression.
+On a random sample of ICLR 2025 submissions, they report that the AI score achieves Spearman correlation comparable to human--human agreement and provides non-trivial acceptance prediction AUC (Table~\ref{tab:paperreviewai_reported}).
+We emphasize these numbers are \emph{not directly comparable} to ours due to different datasets, access to external web search/arXiv grounding, and differing score construction protocols.
+
+\subsection{Main Results}
+Table~\ref{tab:baseline_vs_agent} summarizes the baseline-vs-agent comparison on $N=899$ examples.
+Overall, enabling retrieval and agentic coordination yields a small increase in weakness recall (0.0084 $\rightarrow$ 0.0096).
+However, in this run, hallucination increases substantially (hallucination ratio 0.0636 $\rightarrow$ 0.1555) and rating correlation becomes more negative (Spearman $-0.059$ $\rightarrow$ $-0.427$).
+These results suggest that while retrieval can help surface some missing weaknesses, additional constraints (e.g., stricter grounding/citation requirements and calibration of the rating head) are required to improve faithfulness and score alignment.
+
+\begin{table}[t]
+    \centering
+    \caption{Baseline vs. \textsc{ReviewerAgent} on the OpenReview-derived test set ($N=899$). Correlations are computed between predicted and mean human ratings. Lower hallucination is better; higher weakness recall is better.}
+    \label{tab:baseline_vs_agent}
+    \begin{tabular}{lcc}
+        oprule
+        extbf{Metric}            & \textbf{Baseline} & \textbf{Agent} \\
+        \midrule
+        Pearson ($r$)            & -0.0786           & -0.4307        \\
+        Spearman ($\rho$)        & -0.0593           & -0.4271        \\
+        Avg. weakness recall     & 0.0084            & 0.0096         \\
+        Avg. hallucination score & 0.0895            & 0.2098         \\
+        Avg. hallucination ratio & 0.0636            & 0.1555         \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\begin{table}[t]
+    \centering
+    \caption{PaperReview.ai reported score-agreement metrics on ICLR 2025 submissions (from~\cite{paperreviewai}). These results are shown only for context and are not directly comparable to Table~\ref{tab:baseline_vs_agent}.}
+    \label{tab:paperreviewai_reported}
+    \begin{tabular}{lcc}
+        oprule
+        extbf{Metric}                       & \textbf{Human vs. human} & \textbf{AI vs. human} \\
+        \midrule
+        Spearman ($\rho$) score correlation & 0.41                     & 0.42                  \\
+        AUC for predicting acceptance       & 0.84                     & 0.75                  \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsection{Ablation Studies}
+We plan ablations that isolate the effect of (i) RAG over OpenReview reviews, (ii) optional external retrieval, and (iii) model size (1B vs.
+8B). We leave these ablations to future work as they are not included in the current evaluation run.
+
+\subsection{Analysis}
+We observe three common failure modes: (i) retrieval misses when the paper is out-of-domain relative to indexed venues, (ii) overly generic feedback when the manuscript lacks concrete experimental detail, and (iii) brittle scoring when the model conflates novelty with writing quality.
+On the systems side, on-prem vLLM hosting enables predictable latency and cost, but requires careful GPU memory and context-length configuration.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 5. CONCLUSION
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Conclusion}
+% TODO:
+% - Summarize what you did and why it matters
+% - Key empirical/theoretical findings
+% - Limitations + future work (brief)
+We presented \textsc{ReviewerAgent}, an on-premise, retrieval-augmented multi-agent pipeline that connects OpenReview human review corpora to a LangGraph workflow for generating structured, actionable paper reviews.
+The system is practical to run with self-hosted vLLM models and includes scripts for dataset construction, vector database building, and baseline-vs-agent evaluation.
+Future work includes improving retrieval for non-arXiv domains, more reliable novelty assessment, and stronger faithfulness checks for factual claims.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 6. RELATED WORK (as requested)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Related Work}
+% NOTE:
+% You requested a second "Related Work" slot.
+% Common alternatives are "Limitations", "Broader Impact", or "Discussion".
+% If you actually meant "References", tell me and I'll rename/remove this section.
+% TODO:
+% - If you want: deeper positioning vs. a specific sub-community
+% - Or: discuss additional concurrent work, ethics, limitations
+\paragraph{Automatic peer review and scientific assistants.}
+Recent work explores LLMs for scientific feedback and peer review, including agent-based analyses of peer-review dynamics~\cite{jin2024agentreview}, multi-agent discussion to generate more specific feedback~\cite{darcy2024marg}, and large-scale empirical studies of overlap between LLM feedback and human feedback~\cite{liang2024usefulfeedback}. These studies suggest that LLM feedback can be helpful but may exhibit systematic blind spots (e.g., weaker novelty assessment), motivating workflows that explicitly retrieve context and structure critique.
+Our emphasis differs in that we target evidence-grounded reviewing behaviors by combining retrieval (for grounding) with agentic control (for verification and iterative refinement), rather than treating review generation as a purely generative task.
+
+\paragraph{How this work fits.}
+Relative to standard RAG pipelines~\cite{lewis2020rag}, our focus is not only on grounded generation but also on end-to-end reviewing actions (e.g., targeted retrieval, claim checking, and structured decision support). Relative to general agent frameworks~\cite{wu2023autogen,yao2023react}, we specialize the agent loop and evaluation to the peer-review context.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% REFERENCES
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\bibliography{references}
+\bibliographystyle{icml2025}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% APPENDIX (optional)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\appendix
+\onecolumn
+
+\end{document}

@@ -26,6 +26,8 @@ def build_separate_conferences():
         ("data/NeurIPS.cc_2025_Conference_reviews.json", "neurips_2025"),
         # ICML 년도별
         ("data/ICML.cc_2025_Conference_reviews.json", "icml_2025"),
+        # TMLR (Rolling, single collection)
+        ("data/TMLR_reviews.json", "tmlr"),
     ]
 
     for json_file, collection_name in conferences:

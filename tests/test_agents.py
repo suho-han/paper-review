@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 from src.agents.reviewer import reviewer_node
-from src.agents.retriever import retrieve_node
+from src.agents.retriever import ReviewRetriever, retrieve_node
 from src.agents.rating import RatingAgent
 from src.agents.parser import ParserAgent
 from src.agents.arxiv import ArxivPaperRetriever, arxiv_node
@@ -12,6 +12,7 @@ import sys
 from pathlib import Path
 
 import pytest
+from langchain_core.runnables import RunnableLambda
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
@@ -28,10 +29,11 @@ def test_parser_agent_extracts_key_sections():
     )
     sections = agent.parse(pdf_path=None, raw_text=sample_text)
 
-    assert sections["abstract"].startswith("Abstract")
-    assert "Methodology" in sections["methodology"]
-    assert "Experiments" in sections["experiments"]
-    assert sections["full_text"].startswith("Abstract")
+    assert "studies transformers" in sections["abstract"].lower()
+    assert "sparse attention" in sections["methodology"].lower()
+    assert "state-of-the-art" in sections["experiments"].lower()
+    assert "summary text" in sections["conclusion"].lower()
+    assert sections["full_text"].lower().startswith("abstract")
 
 
 def test_retrieve_node_returns_expected_state(monkeypatch):
@@ -57,6 +59,34 @@ def test_retrieve_node_returns_expected_state(monkeypatch):
     assert result["retrieved_reviews"] == ["great paper"]
     assert result["retrieved_paper_urls"][0].endswith("abc123")
     assert "RAG Agent" in result["progress_log"][-1]
+
+
+def test_review_retriever_injects_collection_and_distance(monkeypatch):
+    class FakeCollection:
+        def __init__(self, name: str):
+            self.name = name
+
+        def query(self, query_texts, n_results, where):
+            return {
+                "documents": [["review doc"]],
+                "metadatas": [[{"forum_id": "abc123", "rating": 7}]],
+                "distances": [[0.123]],
+            }
+
+        def get(self, ids):
+            assert ids == ["abs_abc123"]
+            return {"documents": ["abstract doc"]}
+
+    retriever = ReviewRetriever.__new__(ReviewRetriever)
+    retriever.collections = [FakeCollection("iclr_2025")]
+    monkeypatch.setattr(retriever, "_download_pdf", lambda *args, **kwargs: "")
+
+    docs, metas, abstracts, paper_urls, pdf_urls, pdf_paths = retriever.retrieve_similar_reviews("query", k=1)
+    assert docs == ["review doc"]
+    assert abstracts == ["abstract doc"]
+    assert paper_urls[0].endswith("abc123")
+    assert metas[0]["collection_name"] == "iclr_2025"
+    assert pytest.approx(metas[0]["distance"], 1e-6) == 0.123
 
 
 def test_arxiv_node_updates_state(monkeypatch):
@@ -110,11 +140,24 @@ def test_reviewer_node_receives_arxiv_context(monkeypatch):
 
 
 def test_rating_agent_extracts_inline_score():
-    agent = RatingAgent(llm=None)
+    agent = RatingAgent(llm=None, use_default_llm=False)
     score, rationale = agent.predict_rating("Overall impression. Rating: 7.5 because...")
 
     assert pytest.approx(score, 0.01) == 7.5
     assert rationale == "Extracted from reviewer output."
+
+
+def test_rating_agent_does_not_anchor_on_existing_rating_when_llm_available(monkeypatch):
+    def fake_llm(message):
+        # ChatPromptTemplate will pass a list of messages; convert to text.
+        text = "\n".join(getattr(m, "content", str(m)) for m in (message or []))
+        assert "Rating: 8" not in text
+        return "Rating: 6\nRationale: calibrated"
+
+    agent = RatingAgent(llm=RunnableLambda(fake_llm))
+    score, rationale = agent.predict_rating("1. Summary\n4. Rating: 8\nWeaknesses: ...")
+    assert score == 6.0
+    assert "Rating" in rationale or "Rationale" in rationale
 
 
 def test_arxiv_retriever_caches_results(tmp_path, monkeypatch):
@@ -146,6 +189,97 @@ def test_arxiv_retriever_caches_results(tmp_path, monkeypatch):
     assert cache_hit_second is True
     assert cache_file.exists()
     assert log_file.exists()
+
+
+def test_arxiv_retriever_dedupes_same_arxiv_paper(monkeypatch, tmp_path):
+    def fake_search(self, query):
+        return [
+            {
+                "title": "A Paper",
+                "summary": "",
+                "authors": ["Alice"],
+                "published": "",
+                "url": "https://arxiv.org/abs/2501.12345v1",
+                "pdf_url": "https://arxiv.org/pdf/2501.12345v1.pdf",
+            },
+            {
+                "title": "A Paper (duplicate version)",
+                "summary": "",
+                "authors": ["Alice"],
+                "published": "",
+                "url": "https://arxiv.org/abs/2501.12345v2",
+                "pdf_url": "https://arxiv.org/pdf/2501.12345v2.pdf",
+            },
+            {
+                "title": "Another Paper",
+                "summary": "",
+                "authors": ["Bob"],
+                "published": "",
+                "url": "https://arxiv.org/abs/2401.99999",
+                "pdf_url": "https://arxiv.org/pdf/2401.99999.pdf",
+            },
+        ]
+
+    monkeypatch.setattr(ArxivPaperRetriever, "_search", fake_search, raising=False)
+    retriever = ArxivPaperRetriever(
+        max_results=10,
+        cache_path=tmp_path / "cache.json",
+        log_path=tmp_path / "queries.log",
+        enable_cache=False,
+    )
+
+    papers, snippets, query, cache_hit = retriever.retrieve_similar_papers(title="Query", abstract=None, raw_text="")
+
+    assert cache_hit is False
+    assert query
+    assert len(papers) == 2
+    assert len(snippets) == 2
+    # Ensure the first occurrence is kept.
+    assert papers[0]["url"].endswith("2501.12345v1")
+
+
+def test_arxiv_retriever_dedupes_by_title_and_author_when_no_ids(monkeypatch, tmp_path):
+    def fake_search(self, query):
+        return [
+            {
+                "title": "Same Title",
+                "summary": "",
+                "authors": ["Alice"],
+                "published": "",
+                "url": "",
+                "pdf_url": "",
+            },
+            {
+                "title": "  Same   Title  ",
+                "summary": "",
+                "authors": ["Alice"],
+                "published": "",
+                "url": "",
+                "pdf_url": "",
+            },
+            {
+                "title": "Same Title",
+                "summary": "",
+                "authors": ["Bob"],
+                "published": "",
+                "url": "",
+                "pdf_url": "",
+            },
+        ]
+
+    monkeypatch.setattr(ArxivPaperRetriever, "_search", fake_search, raising=False)
+    retriever = ArxivPaperRetriever(
+        max_results=10,
+        cache_path=tmp_path / "cache.json",
+        log_path=tmp_path / "queries.log",
+        enable_cache=False,
+    )
+
+    papers, snippets, _, _ = retriever.retrieve_similar_papers(title="Query", abstract=None, raw_text="")
+
+    # First two are duplicates (same title + same first author)
+    assert len(papers) == 2
+    assert len(snippets) == 2
 
 
 def test_coordinator_agent_runs_with_stubbed_dependencies():

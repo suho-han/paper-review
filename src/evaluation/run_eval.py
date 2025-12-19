@@ -1,3 +1,8 @@
+from src.evaluation.reporting import resolve_run_paths, write_report_bundle
+from src.evaluation.metrics import calculate_correlation, evaluate_hallucination, evaluate_weakness_recall
+from src.evaluation.dataset import extract_ground_truth, load_test_dataset
+from src.agents.llm import get_llm
+from src.agents.coordinator import CoordinatorAgent
 import argparse
 import json
 import os
@@ -6,13 +11,10 @@ import sys
 import numpy as np
 from tqdm import tqdm
 
-from src.agents.coordinator import CoordinatorAgent
-from src.agents.llm import get_llm
-from src.evaluation.dataset import extract_ground_truth, load_test_dataset
-from src.evaluation.metrics import calculate_correlation, evaluate_hallucination, evaluate_weakness_recall
-
-# Add src to path
-sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
+# Ensure repo root is on path when executed as a script
+REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
+if REPO_ROOT not in sys.path:
+    sys.path.insert(0, REPO_ROOT)
 
 
 def run_evaluation(
@@ -40,6 +42,8 @@ def run_evaluation(
 
     predicted_scores = []
     actual_scores_mean = []
+
+    hallucination_ratios = []
 
     for i, paper_data in enumerate(tqdm(dataset, desc="Evaluating")):
         ground_truth = extract_ground_truth(paper_data)
@@ -92,6 +96,13 @@ def run_evaluation(
                     llm=eval_llm
                 )
 
+            hallucination_ratio = hallucination_result.get("hallucination_ratio")
+            if hallucination_ratio is not None:
+                try:
+                    hallucination_ratios.append(float(hallucination_ratio))
+                except Exception:
+                    pass
+
             # Store result
             result_entry = {
                 "forum_id": paper_data['forum_id'],
@@ -101,6 +112,9 @@ def run_evaluation(
                 "weakness_recall": recall_result.get("recall"),
                 "weakness_eval_details": recall_result,
                 "hallucination_score": hallucination_result.get("hallucination_score"),
+                "hallucination_ratio": hallucination_ratio,
+                "hallucination_total_claims": hallucination_result.get("total_claims"),
+                "hallucination_hallucinated_claims": hallucination_result.get("hallucinated_claims"),
                 "hallucination_details": hallucination_result,
                 "generated_review_snippet": generated_review[:200] + "..." if generated_review else ""
             }
@@ -123,31 +137,64 @@ def run_evaluation(
     if valid_recall_count > 0:
         avg_recall /= valid_recall_count
 
+    avg_hallucination_ratio = float(np.mean(hallucination_ratios)) if hallucination_ratios else 0.0
+
     final_report = {
         "sample_size": len(dataset),
         "successful_runs": len(results),
         "metrics": {
             "correlation": correlation,
-            "avg_weakness_recall": avg_recall
+            "avg_weakness_recall": avg_recall,
+            "avg_hallucination_ratio": avg_hallucination_ratio,
         },
         "details": results
     }
 
-    # Save report
-    os.makedirs(os.path.dirname(output_file), exist_ok=True)
-    with open(output_file, 'w', encoding='utf-8') as f:
-        json.dump(final_report, f, indent=2, ensure_ascii=False)
+    paths = resolve_run_paths(output=output_file, run_name="run_eval")
+    summary_lines = [
+        "# Evaluation Report",
+        "",
+        f"- sample_size: {len(dataset)}",
+        f"- successful_runs: {len(results)}",
+        f"- pearson: {correlation['pearson']:.4f}",
+        f"- spearman: {correlation['spearman']:.4f}",
+        f"- avg_weakness_recall: {avg_recall:.4f}",
+        f"- avg_hallucination_ratio: {avg_hallucination_ratio:.4f}",
+    ]
+    details_fieldnames = [
+        "forum_id",
+        "predicted_rating",
+        "avg_actual_rating",
+        "weakness_recall",
+        "hallucination_score",
+        "hallucination_ratio",
+        "hallucination_total_claims",
+        "hallucination_hallucinated_claims",
+    ]
+    write_report_bundle(
+        paths=paths,
+        report=final_report,
+        summary_lines=summary_lines,
+        details_rows=results,
+        details_fieldnames=details_fieldnames,
+    )
 
     print("\nEvaluation Complete!")
     print(f"Correlation: Pearson={correlation['pearson']:.4f}, Spearman={correlation['spearman']:.4f}")
     print(f"Average Weakness Recall: {avg_recall:.4f}")
-    print(f"Report saved to {output_file}")
+    print(f"Average Hallucination Ratio: {avg_hallucination_ratio:.4f}")
+    print(f"Report saved to {paths.report_json}")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run evaluation on paper reviews.")
-    parser.add_argument("--data", type=str, default="data/ICLR.cc_2025_Conference_reviews.json", help="Path to data file")
-    parser.add_argument("--output", type=str, default="outputs/evaluation_report.json", help="Path to output report")
+    parser.add_argument("--data", type=str, default="data/evaluation/test_set_2025.json", help="Path to data file")
+    parser.add_argument(
+        "--output",
+        type=str,
+        default="outputs/results",
+        help="Output directory (preferred) or a JSON file path",
+    )
     parser.add_argument("--sample", type=int, default=5, help="Number of samples to evaluate")
     parser.add_argument("--no-llm", action="store_true", help="Disable LLM-based evaluation")
 

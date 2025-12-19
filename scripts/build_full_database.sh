@@ -9,7 +9,7 @@ cd "$SCRIPT_DIR/.."
 # 로그 디렉토리 생성
 mkdir -p logs data chromadb
 
-# ICLR, NeurIPS, ICML 2021-2025 데이터 수집
+# ICLR, NeurIPS, ICML 2021-2025 (+ TMLR) 데이터 수집
 ALL_VENUES=(
     "ICLR.cc/2021/Conference"
     "ICLR.cc/2022/Conference"
@@ -26,10 +26,15 @@ ALL_VENUES=(
     "ICML.cc/2023/Conference"
     "ICML.cc/2024/Conference"
     "ICML.cc/2025/Conference"
+    "TMLR"
 )
 
 venue_key() {
     local venue="$1"
+    if [ "$venue" == "TMLR" ]; then
+        echo "tmlr"
+        return
+    fi
     local conf
     conf=$(echo "$venue" | cut -d'/' -f1 | cut -d'.' -f1)
     local year
@@ -69,15 +74,27 @@ echo "=================================================="
 
 for venue in "${VENUES[@]}"; do
     # Extract conference name and year
-    conf=$(echo $venue | cut -d'/' -f1 | cut -d'.' -f1)  # ICLR, NeurIPS, 또는 ICML
-    year=$(echo $venue | grep -oP '\d{4}')
-    conf_lower=$(echo "$conf" | tr '[:upper:]' '[:lower:]')
-    collection_name="${conf_lower}_${year}"
+    if [ "$venue" == "TMLR" ]; then
+        conf="TMLR"
+        year=""
+        conf_lower="tmlr"
+        collection_name="tmlr"
+    else
+        conf=$(echo $venue | cut -d'/' -f1 | cut -d'.' -f1)  # ICLR, NeurIPS, 또는 ICML
+        year=$(echo $venue | grep -oP '\d{4}')
+        conf_lower=$(echo "$conf" | tr '[:upper:]' '[:lower:]')
+        collection_name="${conf_lower}_${year}"
+    fi
     
     log_file="logs/${collection_name}_download.log"
     # 파일명에서 .cc 제거
-    temp_venue="${venue//.cc/}"
-    json_file="data/${temp_venue//\//_}_reviews.json"
+    if [ "$venue" == "TMLR" ]; then
+        json_file="data/TMLR_reviews.json"
+    else
+        # 파일명에서 .cc 제거
+        temp_venue="${venue//.cc/}"
+        json_file="data/${temp_venue//\//_}_reviews.json"
+    fi
     
     # 1. 데이터 수집
     # 이미 다운로드된 파일이 있으면 건너뛰기
@@ -86,7 +103,11 @@ for venue in "${VENUES[@]}"; do
         echo "[$conf $year] 이미 다운로드됨 - 건너뜀: $json_file"
     else
         echo ""
-        echo "[$conf $year] $venue 데이터 다운로드 중..."
+        if [ "$venue" == "TMLR" ]; then
+            echo "[$conf] $venue 데이터 다운로드 중..."
+        else
+            echo "[$conf $year] $venue 데이터 다운로드 중..."
+        fi
         echo "로그: $log_file"
         
         uv run src/data/data_collection.py \
@@ -95,11 +116,23 @@ for venue in "${VENUES[@]}"; do
             2>&1 | tee "$log_file"
         
         if [ $? -eq 0 ]; then
-            echo "[$conf $year] ✓ 다운로드 완료"
+            if [ "$venue" == "TMLR" ]; then
+                echo "[$conf] ✓ 다운로드 완료"
+            else
+                echo "[$conf $year] ✓ 다운로드 완료"
+            fi
             # 각 연도 다운로드 완료 시 알림
-            uv run scripts/alert.py --repo "paper-review" --message "$conf ${year} 데이터 다운로드" 2>/dev/null || true
+            if [ "$venue" == "TMLR" ]; then
+                uv run scripts/alert.py --repo "paper-review" --message "$conf 데이터 다운로드" 2>/dev/null || true
+            else
+                uv run scripts/alert.py --repo "paper-review" --message "$conf ${year} 데이터 다운로드" 2>/dev/null || true
+            fi
         else
-            echo "[$conf $year] ✗ 다운로드 실패 (계속 진행)"
+            if [ "$venue" == "TMLR" ]; then
+                echo "[$conf] ✗ 다운로드 실패 (계속 진행)"
+            else
+                echo "[$conf $year] ✗ 다운로드 실패 (계속 진행)"
+            fi
         fi
         
         # 각 연도 사이에 대기 (rate limit 방지) - 여러 개일 때만
@@ -111,7 +144,11 @@ for venue in "${VENUES[@]}"; do
 
     # 2. ChromaDB 생성
     echo ""
-    echo "[$conf $year] ChromaDB 컬렉션 생성 중: $collection_name"
+    if [ "$venue" == "TMLR" ]; then
+        echo "[$conf] ChromaDB 컬렉션 생성 중: $collection_name"
+    else
+        echo "[$conf $year] ChromaDB 컬렉션 생성 중: $collection_name"
+    fi
     build_log="logs/${collection_name}_vectordb_build.log"
     
     uv run src/vectordb/build_vectordb.py \
@@ -120,9 +157,17 @@ for venue in "${VENUES[@]}"; do
         2>&1 | tee "$build_log"
 
     if [ $? -eq 0 ]; then
-        echo "[$conf $year] ✓ ChromaDB 생성 완료"
+        if [ "$venue" == "TMLR" ]; then
+            echo "[$conf] ✓ ChromaDB 생성 완료"
+        else
+            echo "[$conf $year] ✓ ChromaDB 생성 완료"
+        fi
     else
-        echo "[$conf $year] ✗ ChromaDB 생성 실패"
+        if [ "$venue" == "TMLR" ]; then
+            echo "[$conf] ✗ ChromaDB 생성 실패"
+        else
+            echo "[$conf $year] ✗ ChromaDB 생성 실패"
+        fi
     fi
 done
 

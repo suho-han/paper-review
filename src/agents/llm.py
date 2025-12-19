@@ -28,38 +28,25 @@ def get_llm(
         **kwargs: Additional arguments (e.g., base_url for vLLM).
     """
 
-    # 1. vLLM (OpenAI Compatible) - Default
+    # 1) vLLM (default). If unavailable, fall back to Gemini (if key present).
     if provider == "vllm" or provider is None:
-        return _build_vllm_client(model=model, temperature=temperature, **kwargs)
+        llm = _build_vllm_client(model=model, temperature=temperature, **kwargs)
+        if llm is not None:
+            return llm
+        gemini_llm = _build_gemini_client(model=model, temperature=temperature)
+        if gemini_llm is not None:
+            print("[get_llm] vLLM unavailable; falling back to Gemini")
+            return gemini_llm
+        print("Warning: vLLM unavailable and no Gemini credentials; returning None")
+        return None
 
-    # 2. HuggingFace Local Pipeline
+    # 2) Google Gemini (explicit provider)
+    if provider == "gemini":
+        return _build_gemini_client(model=model, temperature=temperature)
+
+    # 3) HuggingFace local pipeline (explicit provider)
     if provider == "huggingface":
         return _build_huggingface_client(model=model, temperature=temperature, **kwargs)
-
-    # 3. Google Gemini
-    if provider == "gemini":
-        # Define a list of preferred models in order of priority
-        available_gemini_models = [
-            "gemini-2.0-flash-exp",
-            "gemini-2.0-flash",
-            "gemini-1.5-pro",
-            "gemini-1.5-flash",
-        ]
-
-        # Determine which model to use:
-        google_model = model or os.getenv("GOOGLE_MODEL_NAME") or available_gemini_models[0]
-        gemini_api_key = os.getenv("GEMINI_API_KEY")
-
-        if not gemini_api_key:
-            print("Warning: provider='gemini' requested but GEMINI_API_KEY is not set.")
-            return None
-
-        print(f"[get_llm] Using Google Gemini with model {google_model}")
-        return _build_google_client(
-            model_name=google_model,
-            temperature=temperature,
-            api_key=gemini_api_key,
-        )
 
     print("Warning: No valid LLM configuration found.")
     return None
@@ -95,6 +82,29 @@ def _build_vllm_client(model: Optional[str], temperature: float, **kwargs):
         openai_api_key=api_key,
         openai_api_base=base_url,
         max_tokens=kwargs.get("max_tokens", None),
+    )
+
+
+def _build_gemini_client(model: Optional[str], temperature: float):
+    available_gemini_models = [
+        "gemini-2.0-flash-exp",
+        "gemini-2.0-flash",
+        "gemini-1.5-pro",
+        "gemini-1.5-flash",
+    ]
+
+    model_name = model or os.getenv("GOOGLE_MODEL_NAME") or available_gemini_models[0]
+    gemini_api_key = os.getenv("GEMINI_API_KEY")
+
+    if not gemini_api_key:
+        print("Warning: GEMINI_API_KEY not set; cannot initialize Gemini client.")
+        return None
+
+    print(f"[get_llm] Using Google Gemini with model {model_name}")
+    return _build_google_client(
+        model_name=model_name,
+        temperature=temperature,
+        api_key=gemini_api_key,
     )
 
 

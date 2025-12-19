@@ -27,9 +27,16 @@ def check_health(url, retries=3, delay=2):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Health check vLLM Server")
     parser.add_argument("--base-url", type=str, default="http://localhost:8000", help="vLLM server base URL")
+    parser.add_argument("--base-url2", type=str, default="http://localhost:8001", help="vLLM server base URL")
     args = parser.parse_args()
 
     if check_health(args.base_url):
-        sys.exit(0)
+        if check_health(args.base_url2):
+            print("Both vLLM servers are healthy.")
+            sys.exit(0)
+        else:
+            print(f"Second vLLM server {args.base_url2} health check failed.")
+            sys.exit(1)
     else:
+        print(f"First vLLM server {args.base_url} health check failed.")
         sys.exit(1)
