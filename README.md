@@ -1,6 +1,7 @@
 # ReviewerAgent
 
 OpenReview 인간 리뷰 데이터를 RAG와 LangGraph 기반 멀티 에이전트 파이프라인으로 연결한 온프레미스 논문 리뷰어 에이전트입니다. vLLM으로 1B/8B 모델을 자체 호스팅해 Streamlit 데모와 평가 스크립트를 제공합니다.
+코드 저장소: <https://github.com/suho-han/paper-review>
 
 ## Quick Start (Streamlit 데모)
 
