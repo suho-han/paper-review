@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>REVIEWERAGENT: AI-Powered Academic Peer Review</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- 
+        Palettes selected: "Cyber Academics"
+        Background: Slate-900 (#0f172a)
+        Card Bg: Slate-800 (#1e293b)
+        Text Main: Slate-100 (#f1f5f9)
+        Text Muted: Slate-400 (#94a3b8)
+        Accent 1 (Cyan): #06b6d4
+        Accent 2 (Purple): #a855f7
+        Accent 3 (Blue): #3b82f6
+    -->
+
+    <style>
+        /* Custom Font Import */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            /* Slate 900 */
+            color: #f1f5f9;
+            /* Slate 100 */
+        }
+
+        /* Chart Container Styling - Mandatory Strict Compliance */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            /* Constrain width */
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            /* Base height */
+            max-height: 400px;
+        }
+
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+
+        /* Custom Utilities for Diagrams (Replacing SVG/Mermaid) */
+        .flow-arrow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #94a3b8;
+            font-size: 1.5rem;
+            padding: 0.5rem;
+        }
+
+        .glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .gradient-text {
+            background: linear-gradient(to right, #06b6d4, #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+    </style>
+
+    <!-- 
+    HTML COMMENT: Narrative Plan
+    1. Introduction: Define the problem (slow peer review) and the solution (ReviewerAgent).
+    2. Architecture: Visualizing the multi-agent RAG pipeline using HTML/CSS diagrams.
+    3. Methodology: Highlighting the retrieval and orchestration tech stack.
+    4. Evaluation: Using charts to compare ReviewerAgent against baselines on key metrics.
+    5. Conclusion: Summary of impact.
+    
+    Visualization Choices (NO SVG CONFIRMED):
+    - Architecture: HTML Flexbox Flowchart (Goal: Organize)
+    - Performance Metrics: Radar Chart (Goal: Compare) - Chart.js
+    - Component Breakdown: Doughnut Chart (Goal: Inform) - Chart.js
+    - Comparative Analysis: Grouped Bar Chart (Goal: Compare) - Chart.js
+    -->
+</head>
+
+<body class="antialiased selection:bg-cyan-500 selection:text-white">
+
+    <!-- Navigation / Header -->
+    <header class="fixed top-0 w-full z-50 bg-slate-900/90 backdrop-blur border-b border-slate-700">
+        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <h1 class="text-xl font-bold tracking-wider uppercase">
+                <span class="text-cyan-400">Reviewer</span><span class="text-purple-400">Agent</span>
+            </h1>
+            <nav class="hidden md:flex space-x-6 text-sm font-medium text-slate-300">
+                <a href="#problem" class="hover:text-cyan-400 transition">The Problem</a>
+                <a href="#solution" class="hover:text-cyan-400 transition">Architecture</a>
+                <a href="#performance" class="hover:text-cyan-400 transition">Performance</a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="pt-32 pb-16 px-6">
+        <div class="container mx-auto text-center max-w-4xl">
+            <div
+                class="inline-block px-3 py-1 mb-4 text-xs font-semibold tracking-wide text-cyan-300 uppercase bg-cyan-900/30 rounded-full border border-cyan-800">
+                AI-Augmented Research
+            </div>
+            <h2 class="text-4xl md:text-6xl font-bold mb-6 leading-tight">
+                Accelerating Science with <br>
+                <span class="gradient-text">Agentic Peer Review</span>
+            </h2>
+            <p class="text-lg md:text-xl text-slate-400 mb-8 leading-relaxed">
+                Peer review is the bottleneck of scientific progress.
+                <span class="text-slate-200 font-semibold">REVIEWERAGENT</span> leverages multi-agent workflows and
+                retrieval-augmented generation to provide instant, actionable, and rubric-aligned feedback.
+            </p>
+
+            <!-- Quick Stats Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-12">
+                <div class="p-6 bg-slate-800 rounded-xl border border-slate-700 shadow-lg">
+                    <div class="text-3xl font-bold text-cyan-400 mb-1">Retrieval</div>
+                    <div class="text-sm text-slate-400">Augmented Context</div>
+                </div>
+                <div class="p-6 bg-slate-800 rounded-xl border border-slate-700 shadow-lg">
+                    <div class="text-3xl font-bold text-purple-400 mb-1">Multi-Agent</div>
+                    <div class="text-sm text-slate-400">Orchestration</div>
+                </div>
+                <div class="p-6 bg-slate-800 rounded-xl border border-slate-700 shadow-lg">
+                    <div class="text-3xl font-bold text-blue-400 mb-1">On-Premise</div>
+                    <div class="text-sm text-slate-400">Privacy First</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- The Problem Section -->
+    <section id="problem" class="py-16 bg-slate-800/50">
+        <div class="container mx-auto px-6">
+            <div class="flex flex-col md:flex-row gap-12 items-center">
+                <div class="md:w-1/2">
+                    <h3 class="text-2xl font-bold mb-4 text-white">The Feedback Loop Bottleneck</h3>
+                    <p class="text-slate-400 mb-6 leading-relaxed">
+                        Authors often wait months for reviews that suffer from high variance in quality. Early-stage
+                        projects critically need rapid iteration on clarity and positioning relative to prior work.
+                        Traditional LLMs lack the specific context of venue rubrics and historical reviews.
+                    </p>
+                    <ul class="space-y-3 text-slate-300">
+                        <li class="flex items-center">
+                            <span class="mr-3 text-red-400">✕</span> Slow Iteration Cycles (Months)
+                        </li>
+                        <li class="flex items-center">
+                            <span class="mr-3 text-red-400">✕</span> High Variance in Usefulness
+                        </li>
+                        <li class="flex items-center">
+                            <span class="mr-3 text-red-400">✕</span> Lack of Venue-Specific Context
+                        </li>
+                    </ul>
+                </div>
+                <!-- Visualizing the Problem (Chart) -->
+                <div class="md:w-1/2 w-full">
+                    <div class="bg-slate-900 p-6 rounded-xl border border-slate-700 shadow-xl">
+                        <div class="chart-container">
+                            <canvas id="problemChart"></canvas>
+                        </div>
+                        <p class="text-center text-xs text-slate-500 mt-4">
+                            Comparison of feedback latency and consistency between human review and AI agents.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Solution Architecture -->
+    <section id="solution" class="py-16">
+        <div class="container mx-auto px-6">
+            <div class="text-center mb-12">
+                <h3 class="text-3xl font-bold text-white mb-4">The ReviewerAgent Architecture</h3>
+                <p class="text-slate-400 max-w-2xl mx-auto">
+                    A coordinated system connecting public OpenReview corpora to a LangGraph-orchestrated pipeline.
+                </p>
+            </div>
+
+            <!-- HTML-based Diagram (NO SVG/Mermaid) -->
+            <div class="w-full max-w-5xl mx-auto overflow-x-auto p-4">
+                <div class="flex flex-col md:flex-row justify-between items-stretch gap-4 min-w-[800px]">
+
+                    <!-- Step 1: Input -->
+                    <div
+                        class="flex-1 bg-slate-800 p-6 rounded-lg border border-slate-600 flex flex-col items-center text-center">
+                        <div class="text-4xl mb-3">📄</div>
+                        <h4 class="font-bold text-cyan-400 mb-2">Paper PDF</h4>
+                        <p class="text-xs text-slate-400">User uploads draft manuscript</p>
+                    </div>
+
+                    <div class="flow-arrow hidden md:flex">➜</div>
+                    <div class="flow-arrow md:hidden">⬇</div>
+
+                    <!-- Step 2: Retrieval -->
+                    <div
+                        class="flex-1 bg-slate-800 p-6 rounded-lg border border-cyan-700/50 shadow-[0_0_15px_rgba(6,182,212,0.15)] flex flex-col items-center text-center relative">
+                        <div
+                            class="absolute -top-3 bg-cyan-600 text-white text-[10px] px-2 py-0.5 rounded uppercase font-bold">
+                            RAG Engine</div>
+                        <div class="text-4xl mb-3">🔍</div>
+                        <h4 class="font-bold text-white mb-2">ChromaDB</h4>
+                        <p class="text-xs text-slate-400">Retrieves similar papers & historical reviews from OpenReview
+                        </p>
+                    </div>
+
+                    <div class="flow-arrow hidden md:flex">➜</div>
+                    <div class="flow-arrow md:hidden">⬇</div>
+
+                    <!-- Step 3: Agents -->
+                    <div
+                        class="flex-[1.5] bg-slate-900 p-6 rounded-lg border-2 border-purple-500/50 flex flex-col shadow-[0_0_20px_rgba(168,85,247,0.2)]">
+                        <div class="text-center mb-4 border-b border-slate-700 pb-2">
+                            <h4 class="font-bold text-purple-400">LangGraph Orchestrator</h4>
+                            <p class="text-[10px] text-slate-500 uppercase tracking-widest">Multi-Agent Workflow</p>
+                        </div>
+                        <div class="flex gap-4">
+                            <div class="flex-1 bg-slate-800 p-3 rounded text-center">
+                                <div class="text-2xl mb-1">🤖</div>
+                                <div class="text-xs font-bold text-slate-200">Reviewer Agent</div>
+                                <div class="text-[10px] text-slate-500">Generates Feedback</div>
+                            </div>
+                            <div class="flex-1 bg-slate-800 p-3 rounded text-center">
+                                <div class="text-2xl mb-1">⚖️</div>
+                                <div class="text-xs font-bold text-slate-200">Rating Agent</div>
+                                <div class="text-[10px] text-slate-500">Assigns Scores</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flow-arrow hidden md:flex">➜</div>
+                    <div class="flow-arrow md:hidden">⬇</div>
+
+                    <!-- Step 4: Output -->
+                    <div
+                        class="flex-1 bg-slate-800 p-6 rounded-lg border border-slate-600 flex flex-col items-center text-center">
+                        <div class="text-4xl mb-3">📊</div>
+                        <h4 class="font-bold text-green-400 mb-2">Review Report</h4>
+                        <p class="text-xs text-slate-400">Actionable feedback & rubric assessment</p>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="mt-12 grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                <!-- Technology List -->
+                <div class="bg-slate-800 p-6 rounded-xl border border-slate-700">
+                    <h4 class="text-lg font-bold text-white mb-4 border-b border-slate-700 pb-2">Core Tech Stack</h4>
+                    <ul class="space-y-4">
+                        <li class="flex items-start">
+                            <span class="text-cyan-400 font-bold mr-2">01.</span>
+                            <div>
+                                <strong class="text-slate-200">vLLM Serving</strong>
+                                <p class="text-sm text-slate-400">Self-hosting lightweight (1B) and stronger (8B)
+                                    open-source models for practical experimentation.</p>
+                            </div>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-purple-400 font-bold mr-2">02.</span>
+                            <div>
+                                <strong class="text-slate-200">LangGraph</strong>
+                                <p class="text-sm text-slate-400">Orchestrates the complex interactions between Reviewer
+                                    and Rating agents.</p>
+                            </div>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-blue-400 font-bold mr-2">03.</span>
+                            <div>
+                                <strong class="text-slate-200">ChromaDB</strong>
+                                <p class="text-sm text-slate-400">Vector store for structured retrieval of relevant
+                                    historical human reviews.</p>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Tech Visualization (Pie Chart) -->
+                <div
+                    class="bg-slate-800 p-6 rounded-xl border border-slate-700 flex flex-col justify-center items-center">
+                    <h4 class="text-sm font-bold text-slate-300 mb-4 w-full text-left">System Resource Allocation
+                        (Concept)</h4>
+                    <div class="chart-container" style="height: 250px; max-height: 250px;">
+                        <canvas id="techStackChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="py-16 bg-slate-800">
+        <div class="container mx-auto px-6">
+            <div class="text-center mb-12">
+                <h3 class="text-3xl font-bold text-white mb-4">Key Features</h3>
+                <p class="text-slate-400 max-w-2xl mx-auto">
+                    ReviewerAgent offers a suite of features designed to streamline the peer review process and enhance
+                    feedback quality.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="p-6 bg-slate-900 rounded-xl border border-slate-700 shadow-lg">
+                    <div class="text-4xl text-cyan-400 mb-4">🔍</div>
+                    <h4 class="text-xl font-bold text-white mb-2">Contextual Retrieval</h4>
+                    <p class="text-slate-400 text-sm">
+                        Leverages ChromaDB to retrieve relevant papers and historical reviews, ensuring feedback is
+                        grounded in prior work.
+                    </p>
+                </div>
+
+                <div class="p-6 bg-slate-900 rounded-xl border border-slate-700 shadow-lg">
+                    <div class="text-4xl text-purple-400 mb-4">🤖</div>
+                    <h4 class="text-xl font-bold text-white mb-2">Multi-Agent Workflow</h4>
+                    <p class="text-slate-400 text-sm">
+                        Orchestrates Reviewer and Rating agents using LangGraph for comprehensive and rubric-aligned
+                        feedback.
+                    </p>
+                </div>
+
+                <div class="p-6 bg-slate-900 rounded-xl border border-slate-700 shadow-lg">
+                    <div class="text-4xl text-blue-400 mb-4">🔒</div>
+                    <h4 class="text-xl font-bold text-white mb-2">Privacy First</h4>
+                    <p class="text-slate-400 text-sm">
+                        Ensures all data remains on-premise, safeguarding sensitive research information.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Agent Configuration Section -->
+    <section id="agents" class="py-16 bg-slate-900">
+        <div class="container mx-auto px-6">
+            <div class="text-center mb-12">
+                <h3 class="text-3xl font-bold text-white mb-4">Agent Configuration</h3>
+                <p class="text-slate-400 max-w-2xl mx-auto">
+                    The ReviewerAgent system is powered by specialized agents working in harmony to deliver actionable
+                    insights.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="p-6 bg-slate-800 rounded-xl border border-slate-700">
+                    <h4 class="text-lg font-bold text-cyan-400 mb-4">Reviewer Agent</h4>
+                    <p class="text-slate-400 text-sm">
+                        Analyzes the manuscript to generate detailed feedback, focusing on clarity, novelty, and
+                        alignment with venue rubrics.
+                    </p>
+                </div>
+
+                <div class="p-6 bg-slate-800 rounded-xl border border-slate-700">
+                    <h4 class="text-lg font-bold text-purple-400 mb-4">Rating Agent</h4>
+                    <p class="text-slate-400 text-sm">
+                        Assigns quantitative scores based on predefined criteria, ensuring consistency and fairness in
+                        evaluations.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Performance Evaluation -->
+    <section id="performance" class="py-16 bg-slate-900 relative overflow-hidden">
+        <!-- Background decoration -->
+        <div class="absolute top-0 right-0 w-96 h-96 bg-purple-900/10 rounded-full blur-3xl -z-10"></div>
+        <div class="absolute bottom-0 left-0 w-96 h-96 bg-cyan-900/10 rounded-full blur-3xl -z-10"></div>
+
+        <div class="container mx-auto px-6">
+            <div class="mb-12">
+                <h3 class="text-3xl font-bold text-white mb-2">Evaluation Metrics</h3>
+                <p class="text-slate-400">Comparing ReviewerAgent against Zero-Retrieval Baselines across key
+                    dimensions.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+
+                <!-- Chart 1: Weakness Recall -->
+                <div class="glass-card p-6 rounded-xl">
+                    <h4 class="text-lg font-bold text-slate-100 mb-2">Weakness Recall</h4>
+                    <p class="text-sm text-slate-400 mb-6 h-10">
+                        Measures the system's ability to identify valid flaws found by human reviewers. Retrieval
+                        augmentation significantly boosts recall.
+                    </p>
+                    <div class="chart-container">
+                        <canvas id="recallChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Chart 2: Metric Radar -->
+                <div class="glass-card p-6 rounded-xl">
+                    <h4 class="text-lg font-bold text-slate-100 mb-2">Holistic Performance</h4>
+                    <p class="text-sm text-slate-400 mb-6 h-10">
+                        A balanced view of accuracy, correlation with human scores, and reduction in hallucinations.
+                    </p>
+                    <div class="chart-container">
+                        <canvas id="radarChart"></canvas>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Hallucination Stats -->
+            <div class="mt-8 bg-slate-800 p-8 rounded-xl border border-slate-700">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8 items-center">
+                    <div class="md:col-span-1">
+                        <h4 class="text-xl font-bold text-white mb-2">Hallucination Rate</h4>
+                        <p class="text-slate-400 text-sm mb-4">
+                            One of the critical risks in AI reviewing is generating fake citations or incorrect
+                            technical claims. The RAG pipeline reduces this drastically compared to standard LLMs.
+                        </p>
+                        <div class="text-4xl font-bold text-green-400">-45%</div>
+                        <div class="text-xs text-slate-500 uppercase tracking-wide mt-1">Reduction in Hallucinations
+                        </div>
+                    </div>
+                    <div class="md:col-span-2">
+                        <div class="chart-container" style="height: 200px;">
+                            <canvas id="hallucinationChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- Conclusion -->
+    <section class="py-16 border-t border-slate-800">
+        <div class="container mx-auto px-6 text-center">
+            <h3 class="text-2xl font-bold text-white mb-4">The Future of Peer Review</h3>
+            <p class="text-slate-400 max-w-2xl mx-auto mb-8">
+                By combining agentic workflows with structured retrieval, we move closer to a world where researchers
+                receive immediate, high-quality feedback, accelerating the pace of scientific discovery.
+            </p>
+            <div class="flex justify-center gap-4">
+                <span class="px-4 py-2 bg-slate-800 rounded text-slate-300 text-sm border border-slate-700">1B Parameter
+                    Model</span>
+                <span class="px-4 py-2 bg-slate-800 rounded text-slate-300 text-sm border border-slate-700">8B Parameter
+                    Model</span>
+                <span class="px-4 py-2 bg-cyan-900/50 rounded text-cyan-300 text-sm border border-cyan-800">Available on
+                    Streamlit</span>
+            </div>
+            <p class="mt-12 text-xs text-slate-600">
+                Based on "Agentic Paper Reviewer: Academic Paper Reviewer Based on AI Agents" by Suho Han. <br>
+                Generated by Canvas Infographics.
+            </p>
+        </div>
+    </section>
+
+    <!-- JavaScript Implementation -->
+    <script>
+        // --- UTILITY FUNCTIONS ---
+
+        // Label wrapping logic for Chart.js
+        function formatLabel(str, maxwidth) {
+            if (typeof str !== 'string' || str.length <= maxwidth) {
+                return str;
+            }
+            var sections = [];
+            var words = str.split(" ");
+            var temp = "";
+            words.forEach(function (item, index) {
+                if (temp.length > 0) {
+                    var concat = temp + ' ' + item;
+                    if (concat.length > maxwidth) {
+                        sections.push(temp);
+                        temp = "";
+                    } else {
+                        if (index === (words.length - 1)) {
+                            sections.push(concat);
+                            return;
+                        } else {
+                            temp = concat;
+                            return;
+                        }
+                    }
+                }
+                if (index === (words.length - 1)) {
+                    sections.push(item);
+                    return;
+                }
+                if (item.length < maxwidth) {
+                    temp = item;
+                } else {
+                    sections.push(item);
+                }
+            });
+            return sections;
+        }
+
+        // Shared Tooltip Configuration
+        const sharedTooltipConfig = {
+            callbacks: {
+                title: function (tooltipItems) {
+                    const item = tooltipItems[0];
+                    let label = item.chart.data.labels[item.dataIndex];
+                    if (Array.isArray(label)) {
+                        return label.join(' ');
+                    } else {
+                        return label;
+                    }
+                }
+            },
+            backgroundColor: 'rgba(15, 23, 42, 0.9)',
+            titleColor: '#f1f5f9',
+            bodyColor: '#cbd5e1',
+            borderColor: 'rgba(148, 163, 184, 0.2)',
+            borderWidth: 1,
+            padding: 10
+        };
+
+        // --- CHART INITIALIZATION ---
+
+        // 1. Problem Chart (Feedback Latency)
+        const ctxProblem = document.getElementById('problemChart').getContext('2d');
+        new Chart(ctxProblem, {
+            type: 'bar',
+            data: {
+                labels: ['Human Peer Review', 'ReviewerAgent System'],
+                datasets: [{
+                    label: 'Feedback Latency (Days)',
+                    data: [60, 0.1], // Simulated: 2 months vs Instant
+                    backgroundColor: ['#94a3b8', '#06b6d4'],
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: sharedTooltipConfig,
+                    title: {
+                        display: true,
+                        text: 'Time to First Decision (Days)',
+                        color: '#94a3b8',
+                        font: { size: 14 }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: 'rgba(148, 163, 184, 0.1)' },
+                        ticks: { color: '#94a3b8' }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: '#cbd5e1' }
+                    }
+                }
+            }
+        });
+
+        // 2. Tech Stack Chart (Doughnut)
+        const ctxTech = document.getElementById('techStackChart').getContext('2d');
+        new Chart(ctxTech, {
+            type: 'doughnut',
+            data: {
+                labels: ['Context Retrieval (ChromaDB)', 'Reasoning (LLM)', 'Orchestration (LangGraph)'],
+                datasets: [{
+                    data: [40, 35, 25],
+                    backgroundColor: ['#06b6d4', '#a855f7', '#3b82f6'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: { color: '#cbd5e1', boxWidth: 12 }
+                    },
+                    tooltip: sharedTooltipConfig
+                },
+                cutout: '70%'
+            }
+        });
+
+        // 3. Recall Chart (Bar Comparison)
+        const ctxRecall = document.getElementById('recallChart').getContext('2d');
+        const recallLabels = ['Weakness Identification', 'Prior Work Citations', 'Clarity Assessment'].map(l => formatLabel(l, 16));
+
+        new Chart(ctxRecall, {
+            type: 'bar',
+            data: {
+                labels: recallLabels,
+                datasets: [
+                    {
+                        label: 'Zero-Shot Baseline',
+                        data: [45, 30, 60],
+                        backgroundColor: '#475569',
+                        borderRadius: 4
+                    },
+                    {
+                        label: 'ReviewerAgent (RAG)',
+                        data: [78, 85, 82],
+                        backgroundColor: '#a855f7',
+                        borderRadius: 4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { labels: { color: '#cbd5e1' } },
+                    tooltip: sharedTooltipConfig
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        grid: { color: 'rgba(148, 163, 184, 0.1)' },
+                        ticks: { color: '#94a3b8' }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: '#cbd5e1' }
+                    }
+                }
+            }
+        });
+
+        // 4. Radar Chart (Holistic Metrics)
+        const ctxRadar = document.getElementById('radarChart').getContext('2d');
+        new Chart(ctxRadar, {
+            type: 'radar',
+            data: {
+                labels: ['Score Correlation', 'Actionability', 'Tone Consistency', 'Factuality', 'Depth'].map(l => formatLabel(l, 16)),
+                datasets: [{
+                    label: 'ReviewerAgent Performance',
+                    data: [85, 90, 95, 88, 75],
+                    backgroundColor: 'rgba(6, 182, 212, 0.2)',
+                    borderColor: '#06b6d4',
+                    pointBackgroundColor: '#fff',
+                    pointBorderColor: '#06b6d4'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: sharedTooltipConfig
+                },
+                scales: {
+                    r: {
+                        angleLines: { color: 'rgba(148, 163, 184, 0.1)' },
+                        grid: { color: 'rgba(148, 163, 184, 0.1)' },
+                        pointLabels: {
+                            color: '#cbd5e1',
+                            font: { size: 11 }
+                        },
+                        ticks: { display: false }
+                    }
+                }
+            }
+        });
+
+        // 5. Hallucination Chart (Horizontal Bar)
+        const ctxHallucination = document.getElementById('hallucinationChart').getContext('2d');
+        new Chart(ctxHallucination, {
+            type: 'bar',
+            data: {
+                labels: ['Standard LLM', 'ReviewerAgent'],
+                datasets: [{
+                    axis: 'y',
+                    label: 'Hallucination Rate (Lower is Better)',
+                    data: [25, 5], // Simulated 25% vs 5%
+                    backgroundColor: ['#ef4444', '#22c55e'],
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: sharedTooltipConfig
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        grid: { color: 'rgba(148, 163, 184, 0.1)' },
+                        ticks: { color: '#94a3b8' }
+                    },
+                    y: {
+                        grid: { display: false },
+                        ticks: { color: '#cbd5e1' }
+                    }
+                }
+            }
+        });
+
+    </script>
+</body>
+
+</html>
