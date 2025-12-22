@@ -5,6 +5,15 @@ Repository: <https://github.com/suho-han/paper-review>
 
 [[README.md in Korean]](docs/README_kor.md)
 
+## Development Environments
+
+VS Code with Copilot (mainly used Gemini 3 Pro)
+Python 3.13.9
+Deployment: Streamlit
+OS: Linux (tested on Ubuntu 22.04+)
+Package manager: uv (recommended), pip
+GPU: NVIDIA RTX Pro 6000
+
 ## Quick Start (Streamlit Demo)
 
 ```bash
